@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
+import TagInput from './TagInput.jsx';
 
-export default function NoteCard({ note, onUpdate, onDelete }) {
+export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
+  const [tags, setTags] = useState(note.tags || []);
   const [saving, setSaving] = useState(false);
 
   function cancel() {
     setTitle(note.title);
     setContent(note.content);
+    setTags(note.tags || []);
     setEditing(false);
   }
 
   async function save() {
     if (!title.trim()) return;
     setSaving(true);
-    await onUpdate(note.id, { title: title.trim(), content });
+    await onUpdate(note.id, { title: title.trim(), content, tags });
     setSaving(false);
     setEditing(false);
   }
 
-  const formattedDate = new Date(note.updated_at + 'Z').toLocaleDateString(undefined, {
+  // note.updated_at comes from Postgres as a TIMESTAMPTZ — already a valid
+  // ISO string with timezone info, so it parses directly with no hacks.
+  const formattedDate = new Date(note.updated_at).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -43,6 +48,7 @@ export default function NoteCard({ note, onUpdate, onDelete }) {
           onChange={(e) => setContent(e.target.value)}
           rows={4}
         />
+        <TagInput tags={tags} onChange={setTags} placeholder="Add tags…" />
         <div className="note-actions">
           <button onClick={cancel} disabled={saving}>Cancel</button>
           <button className="save" onClick={save} disabled={saving || !title.trim()}>
@@ -57,6 +63,15 @@ export default function NoteCard({ note, onUpdate, onDelete }) {
     <div className="note-card">
       <h3>{note.title}</h3>
       <p>{note.content || <em style={{ color: '#b3ac9d' }}>No content</em>}</p>
+      {note.tags && note.tags.length > 0 && (
+        <div className="note-tags">
+          {note.tags.map((tag) => (
+            <button key={tag} className="tag-pill" onClick={() => onTagClick?.(tag)}>
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="note-meta">Updated {formattedDate}</div>
       <div className="note-actions">
         <button onClick={() => setEditing(true)}>Edit</button>
