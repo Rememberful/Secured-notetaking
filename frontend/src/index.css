@@ -1,0 +1,440 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --paper: #faf7f0;
+  --paper-card: #fffdf9;
+  --ink: #1c1b19;
+  --ink-soft: #5c5750;
+  --accent: #b8893f;
+  --accent-dark: #95702f;
+  --sage: #6b7c5e;
+  --rule: #e4ddcf;
+  --danger: #a8453a;
+  --shadow: rgba(28, 27, 25, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Auth pages ---- */
+.auth-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 40px 32px;
+  box-shadow: 0 1px 3px var(--shadow), 0 8px 24px var(--shadow);
+}
+
+.auth-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.auth-card h1 {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.auth-sub {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  transition: border-color 0.15s ease;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+.btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 3px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #34322e;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.google-btn-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-switch {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.auth-switch button {
+  background: none;
+  border: none;
+  color: var(--accent-dark);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.error-banner {
+  background: #f5e6e3;
+  border: 1px solid #e0bab2;
+  color: var(--danger);
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 3px;
+  margin-bottom: 16px;
+}
+
+/* ---- App header ---- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand h1 {
+  font-size: 22px;
+}
+
+.brand .tag {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.user-chip .name {
+  font-weight: 500;
+}
+
+.user-chip button {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.user-chip button:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+/* ---- Notes dashboard ---- */
+.dashboard {
+  flex: 1;
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.composer {
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.composer input[type="text"] {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Source Serif 4', serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding: 4px 0;
+}
+
+.composer textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+  padding: 4px 0;
+  color: var(--ink-soft);
+}
+
+.composer input:focus,
+.composer textarea:focus {
+  outline: none;
+}
+
+.composer-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.composer-footer .btn {
+  width: auto;
+  padding: 8px 20px;
+  font-size: 14px;
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.note-card {
+  position: relative;
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 18px;
+  box-shadow: 0 1px 2px var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
+}
+
+/* folded-corner signature element */
+.note-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, transparent 50%, var(--paper) 50%);
+  border-bottom-left-radius: 2px;
+  box-shadow: -1px 1px 2px var(--shadow);
+}
+
+.note-card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+  padding-right: 14px;
+}
+
+.note-card p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  flex: 1;
+  white-space: pre-wrap;
+  margin: 0 0 12px 0;
+}
+
+.note-card textarea.edit-content,
+.note-card input.edit-title {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+
+.note-card .edit-title {
+  font-family: 'Source Serif 4', serif;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.note-meta {
+  font-size: 11px;
+  color: #9c9588;
+  margin-bottom: 10px;
+}
+
+.note-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.note-actions button {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.note-actions button:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.note-actions button.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.note-actions button.save {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-soft);
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    padding: 16px 20px;
+  }
+  .dashboard {
+    padding: 20px;
+  }
+}
