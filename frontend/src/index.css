@@ -16,17 +16,20 @@
 /* Dark theme — keeps the same warm paper/ink personality rather than
    switching to a generic neutral-gray dark mode. Think "ink on dark paper
    by lamplight" rather than "default OS dark mode". */
+/* Dark theme — pure dark, high contrast, VSCode-style.
+   Near-black background, near-white text, blue accent for interactive
+   elements, red for danger. No warm tints. */
 [data-theme='dark'] {
-  --paper: #1b1916;
-  --paper-card: #242220;
-  --ink: #f0ebe1;
-  --ink-soft: #b3aa9c;
-  --accent: #d6a753;
-  --accent-dark: #e8bc6e;
-  --sage: #8da179;
-  --rule: #3a362f;
-  --danger: #e07a6c;
-  --shadow: rgba(0, 0, 0, 0.35);
+  --paper: #1e1e1e;
+  --paper-card: #252526;
+  --ink: #d4d4d4;
+  --ink-soft: #808080;
+  --accent: #4fc3f7;
+  --accent-dark: #29b6f6;
+  --sage: #4ec9b0;
+  --rule: #3e3e42;
+  --danger: #f44747;
+  --shadow: rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -172,7 +175,7 @@ button {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #34322e;
+  opacity: 0.88;
 }
 
 .divider {
@@ -219,8 +222,8 @@ button {
 }
 
 .error-banner {
-  background: #f5e6e3;
-  border: 1px solid #e0bab2;
+  background: rgba(244, 71, 71, 0.1);
+  border: 1px solid var(--danger);
   color: var(--danger);
   font-size: 13px;
   padding: 10px 12px;
@@ -400,7 +403,7 @@ button {
 
 .note-meta {
   font-size: 11px;
-  color: #9c9588;
+  color: var(--ink-soft);
   margin-bottom: 10px;
 }
 
@@ -644,8 +647,8 @@ button {
 }
 
 .media-error {
-  background: #f5e6e3;
-  border: 1px solid #e0bab2;
+  background: rgba(244, 71, 71, 0.1);
+  border: 1px solid var(--danger);
   color: var(--danger);
   font-size: 12px;
   padding: 8px 10px;

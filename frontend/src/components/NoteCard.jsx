@@ -66,7 +66,7 @@ export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
   return (
     <div className="note-card">
       <h3>{note.title}</h3>
-      <p>{note.content || <em style={{ color: '#b3ac9d' }}>No content</em>}</p>
+<p>{note.content || <em style={{ color: 'var(--ink-soft)' }}>No content</em>}</p>
       <MediaGallery noteId={note.id} media={note.media} onMediaChange={() => {}} readOnly />
       {note.tags && note.tags.length > 0 && (
         <div className="note-tags">

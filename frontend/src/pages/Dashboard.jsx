@@ -72,7 +72,8 @@ export default function Dashboard() {
         setNotes((prev) => [data, ...prev]);
       }
       loadTags();
-    } catch (err) {
+      return data;
+    } catch (err) {{
       setError(err.message);
     }
   }
@@ -142,7 +143,18 @@ export default function Dashboard() {
       <main className="dashboard">
         {error && <div className="error-banner">{error}</div>}
 
-        <Composer onCreate={handleCreate} />
+        <Composer
+  onCreate={handleCreate}
+  onMediaUploaded={(noteId, uploaded) => {
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId
+          ? { ...n, media: [...(n.media || []), ...uploaded] }
+          : n
+      )
+    );
+  }}
+/>
 
         <SearchBar onSearch={setSearchQuery} />
         <TagFilter tags={allTags} activeTag={activeTag} onSelect={setActiveTag} />
