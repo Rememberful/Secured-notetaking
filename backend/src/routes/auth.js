@@ -166,16 +166,40 @@ router.post('/forgot-password', authAttemptLimiter, async (req, res) => {
         [user.id, tokenHash, expiresAt]
       );
 
-      // TODO once an email provider is configured: send `rawToken` to the
-      // user's email as a reset link, e.g. https://yourapp.com/reset?token=rawToken
-      // Never log or return rawToken to the client — only the email should ever see it.
-      console.log(`[forgot-password] Reset token generated for user ${user.id} (email delivery not configured)`);
+      // Send the reset email via Resend
+      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+
+      if (process.env.RESEND_API_KEY) {
+        const { Resend } = await import('resend');
+        const resend = new Resend(process.env.RESEND_API_KEY);
+
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
+          to: email,
+          subject: 'Reset your Notes password',
+          html: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+              <h2 style="margin-bottom: 8px;">Reset your password</h2>
+              <p style="color: #555;">Click the link below to set a new password. This link expires in 1 hour.</p>
+              <a href="${resetUrl}"
+                 style="display: inline-block; margin: 24px 0; padding: 12px 24px;
+                        background: #1c1b19; color: #fff; border-radius: 4px;
+                        text-decoration: none; font-weight: 600;">
+                Reset password
+              </a>
+              <p style="color: #999; font-size: 13px;">
+                If you didn't request this, you can safely ignore this email.
+              </p>
+            </div>
+          `,
+        });
+      } else {
+        console.log(`[forgot-password] RESEND_API_KEY not set — reset link: ${resetUrl}`);
+      }
     }
 
-    // Same response regardless of whether the account exists.
     res.json({
-      message: 'If an account with that email exists, a password reset link has been generated.',
-      _devNote: 'Email delivery is not yet configured for this project — see README. No email was actually sent.',
+      message: 'If an account with that email exists, a password reset link has been sent.',
     });
   } catch (err) {
     console.error('Forgot password error:', err);

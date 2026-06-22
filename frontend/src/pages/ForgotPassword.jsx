@@ -21,7 +21,7 @@ export default function ForgotPassword() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
-      setResult({ message: data.message, devNote: data._devNote });
+      setResult({ message: data.message });;
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,11 +43,6 @@ export default function ForgotPassword() {
         {result ? (
           <>
             <div className="info-banner">{result.message}</div>
-            {result.devNote && (
-              <div className="dev-note-banner">
-                <strong>Demo note:</strong> {result.devNote}
-              </div>
-            )}
           </>
         ) : (
           <form onSubmit={handleSubmit}>

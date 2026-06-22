@@ -6,6 +6,7 @@ import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 function ProtectedRoute({ children }) {
   const { token, loading } = useAuth();
@@ -56,6 +57,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/reset-password" element={<PublicOnlyRoute><ResetPassword /></PublicOnlyRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
