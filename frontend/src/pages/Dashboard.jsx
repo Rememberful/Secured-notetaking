@@ -4,6 +4,7 @@ import Composer from '../components/Composer.jsx';
 import NoteCard from '../components/NoteCard.jsx';
 import SearchBar from '../components/SearchBar.jsx';
 import TagFilter from '../components/TagFilter.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 export default function Dashboard() {
   const { token, user, logout, apiUrl } = useAuth();
@@ -132,6 +133,7 @@ export default function Dashboard() {
           <span className="tag">{notes.length} {isFiltering ? 'found' : 'saved'}</span>
         </div>
         <div className="user-chip">
+          <ThemeToggle />
           <span className="name">{user?.name || user?.email}</span>
           <button onClick={logout}>Sign out</button>
         </div>

@@ -64,6 +64,9 @@ export default function Login() {
               autoComplete="current-password"
             />
           </div>
+          <div className="forgot-password-link">
+            <Link to="/forgot-password">Forgot your password?</Link>
+          </div>
           <button className="btn btn-primary" type="submit" disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>

@@ -1,15 +1,27 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { pool } from '../db/db.js';
+import { validateBody, signupSchema, loginSchema, googleAuthSchema, passwordSchema } from '../validation/schemas.js';
+import { authAttemptLimiter, signupLimiter } from '../middleware/rateLimiters.js';
 
 const router = Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// JWT_ISSUER/JWT_AUDIENCE are fixed, app-internal constants (not secrets) —
+// they don't need an env var. Including them lets requireAuth() reject tokens
+// that weren't issued by this specific service, which matters if the JWT_SECRET
+// were ever reused across services (defense in depth, OWASP API2).
+const JWT_ISSUER = 'notes-app';
+const JWT_AUDIENCE = 'notes-app-client';
+
 function issueToken(user) {
   return jwt.sign({ sub: user.id, email: user.email }, process.env.JWT_SECRET, {
     expiresIn: '7d',
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
   });
 }
 
@@ -18,15 +30,9 @@ function publicUser(user) {
 }
 
 // ---- Email/password signup ----
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimiter, validateBody(signupSchema), async (req, res) => {
+  // email is already trimmed + lowercased + validated by the zod schema
   const { email, password, name } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  }
 
   try {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -34,7 +40,9 @@ router.post('/signup', async (req, res) => {
       return res.status(409).json({ error: 'An account with that email already exists' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Cost factor 12 — meaningfully more brute-force resistant than 10 on
+    // modern hardware, still fast enough (~250ms) not to hurt UX.
+    const passwordHash = await bcrypt.hash(password, 12);
     const result = await pool.query(
       'INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *',
       [email, name || null, passwordHash]
@@ -50,17 +58,16 @@ router.post('/signup', async (req, res) => {
 });
 
 // ---- Email/password login ----
-router.post('/login', async (req, res) => {
+router.post('/login', authAttemptLimiter, validateBody(loginSchema), async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
+    // Deliberately identical error for "no such user" and "wrong password" —
+    // distinguishing them lets an attacker enumerate which emails have
+    // accounts (OWASP API2: Broken Authentication / user enumeration).
     if (!user || !user.password_hash) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -81,11 +88,9 @@ router.post('/login', async (req, res) => {
 // ---- Google Sign-In ----
 // Frontend sends the ID token (credential) it got from Google's button.
 // We verify it server-side — never trust a client-decoded token.
-router.post('/google', async (req, res) => {
+router.post('/google', authAttemptLimiter, validateBody(googleAuthSchema), async (req, res) => {
   const { credential } = req.body;
-  if (!credential) {
-    return res.status(400).json({ error: 'Missing Google credential' });
-  }
+
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID.includes('your_google_client_id')) {
     return res.status(500).json({ error: 'Server is missing GOOGLE_CLIENT_ID configuration' });
   }
@@ -96,7 +101,8 @@ router.post('/google', async (req, res) => {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { sub: googleId, email, name, email_verified } = payload;
+    const { sub: googleId, email: rawEmail, name, email_verified } = payload;
+    const email = rawEmail.trim().toLowerCase();
 
     if (!email_verified) {
       return res.status(401).json({ error: 'Google account email is not verified' });
@@ -130,4 +136,94 @@ router.post('/google', async (req, res) => {
   }
 });
 
+// ---- Forgot password (stub) ----
+// This generates and stores a real, single-use, expiring reset token —
+// the cryptographic and DB logic is fully implemented and tested — but does
+// NOT send an email, since that requires an email-delivery provider
+// (Resend, SES, etc.) which hasn't been configured for this project yet.
+// See README "Forgot password" section for what's needed to complete this.
+//
+// Deliberately returns the same generic response whether or not the email
+// exists, to avoid leaking which emails have accounts (OWASP API2: user
+// enumeration) — same principle as the /login error message.
+router.post('/forgot-password', authAttemptLimiter, async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const result = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await pool.query(
+        'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+        [user.id, tokenHash, expiresAt]
+      );
+
+      // TODO once an email provider is configured: send `rawToken` to the
+      // user's email as a reset link, e.g. https://yourapp.com/reset?token=rawToken
+      // Never log or return rawToken to the client — only the email should ever see it.
+      console.log(`[forgot-password] Reset token generated for user ${user.id} (email delivery not configured)`);
+    }
+
+    // Same response regardless of whether the account exists.
+    res.json({
+      message: 'If an account with that email exists, a password reset link has been generated.',
+      _devNote: 'Email delivery is not yet configured for this project — see README. No email was actually sent.',
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Could not process request' });
+  }
+});
+
+// ---- Reset password (stub counterpart) ----
+// Fully functional IF a valid, unexpired, unused token is presented — the
+// part that's missing is only the email step above that would deliver the
+// token to the user in the first place.
+router.post('/reset-password', authAttemptLimiter, async (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Reset token is required' });
+  }
+  const parsedPassword = passwordSchema.safeParse(newPassword);
+  if (!parsedPassword.success) {
+    return res.status(400).json({ error: parsedPassword.error.errors[0]?.message || 'Invalid password' });
+  }
+
+  try {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const result = await pool.query(
+      `SELECT * FROM password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
+      [tokenHash]
+    );
+    const resetRecord = result.rows[0];
+    if (!resetRecord) {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired' });
+    }
+
+    const passwordHash = await bcrypt.hash(parsedPassword.data, 12);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [
+      passwordHash,
+      resetRecord.user_id,
+    ]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = now() WHERE id = $1', [
+      resetRecord.id,
+    ]);
+
+    res.json({ message: 'Password updated successfully. You can now sign in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Could not reset password' });
+  }
+});
+
+export { JWT_ISSUER, JWT_AUDIENCE };
 export default router;

@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Notes</title>
+    <!-- Sets the theme attribute before React/CSS even loads, so the page
+         never flashes the light theme before flipping to dark. Keep this in
+         sync with the storage key and logic in ThemeContext.jsx. -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('notes-app-theme') || 'system';
+        var resolved =
+          stored === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : stored;
+        document.documentElement.setAttribute('data-theme', resolved);
+      })();
+    </script>
     <!-- Google Identity Services SDK — powers the Sign in with Google button -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>

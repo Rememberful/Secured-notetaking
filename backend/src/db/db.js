@@ -93,4 +93,46 @@ export async function initDb() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_notes_search_vector ON notes USING GIN (search_vector);
   `);
+
+  // --- Media (images attached to notes) ---
+  // Stored directly as bytea in Postgres rather than external object storage —
+  // a deliberate simplicity tradeoff for this project (see README). Enforced
+  // size cap happens at the application layer (multer + an explicit check),
+  // not here, but a DB-level CHECK constraint is added too as defense in depth
+  // so a bug in the application layer can't silently bypass the limit.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS media (
+      id SERIAL PRIMARY KEY,
+      note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL CHECK (size_bytes <= 2097152), -- 2MB hard ceiling
+      data BYTEA NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_media_note_id ON media(note_id);
+  `);
+
+  // --- Password reset tokens (stub — email delivery not yet wired up) ---
+  // Schema exists now so the feature can be completed later without another
+  // migration. See README for what's still needed (an email provider) before
+  // this is functional end-to-end.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+  `);
 }

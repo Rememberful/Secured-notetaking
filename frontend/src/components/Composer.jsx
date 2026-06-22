@@ -34,6 +34,7 @@ export default function Composer({ onCreate }) {
         rows={2}
       />
       <TagInput tags={tags} onChange={setTags} placeholder="Add tags…" />
+      <p className="composer-hint">You can attach images after saving, from the Edit view.</p>
       <div className="composer-footer">
         <button className="btn btn-primary" type="submit" disabled={submitting || !title.trim()}>
           {submitting ? 'Adding…' : 'Add note'}
