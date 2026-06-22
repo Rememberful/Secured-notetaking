@@ -73,7 +73,7 @@ export default function Dashboard() {
       }
       loadTags();
       return data;
-    } catch (err) {{
+    } catch (err) {
       setError(err.message);
     }
   }
