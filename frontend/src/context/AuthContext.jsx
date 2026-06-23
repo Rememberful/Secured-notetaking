@@ -5,38 +5,33 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [user, setUser] = useState(null);
+  const [user, setUser]   = useState(null);
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('login_time');
     setToken(null);
     setUser(null);
   }, []);
 
-  // On mount (or token change), verify the session is still valid and load the user
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!token) { setLoading(false); return; }
     fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Session invalid');
-        return res.json();
-      })
+      .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
       .then((data) => setUser(data.user))
       .catch(() => logout())
       .finally(() => setLoading(false));
   }, [token, logout]);
 
-  const login = (newToken, newUser) => {
+  const login = useCallback((newToken, newUser) => {
     localStorage.setItem('token', newToken);
+    localStorage.setItem('login_time', String(Date.now()));
     setToken(newToken);
     setUser(newUser);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ token, user, loading, login, logout, apiUrl: API_URL }}>

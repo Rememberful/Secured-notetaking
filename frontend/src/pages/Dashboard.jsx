@@ -1,19 +1,51 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import Composer from '../components/Composer.jsx';
 import NoteCard from '../components/NoteCard.jsx';
 import SearchBar from '../components/SearchBar.jsx';
 import TagFilter from '../components/TagFilter.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import SessionWarningModal from '../components/SessionWarningModal.jsx';
+import useSessionTimeout from '../hooks/useSessionTimeout.js';
 
 export default function Dashboard() {
   const { token, user, logout, apiUrl } = useAuth();
-  const [notes, setNotes] = useState([]);
-  const [allTags, setAllTags] = useState([]);
+  const [notes, setNotes]       = useState([]);
+  const [allTags, setAllTags]   = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTag, setActiveTag] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [activeTag, setActiveTag]     = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [showWarning, setShowWarning] = useState(false);
+
+  const composerSaveRef = useRef(null);
+  const editCardSaveRef = useRef(null);
+
+  const flushAllSaves = useCallback(async () => {
+    const flushes = [];
+    if (composerSaveRef.current?.flush) flushes.push(composerSaveRef.current.flush());
+    if (editCardSaveRef.current?.flush)  flushes.push(editCardSaveRef.current.flush());
+    await Promise.allSettled(flushes);
+  }, []);
+
+  const { warningSeconds, extendSession } = useSessionTimeout({
+    onWarn: () => setShowWarning(true),
+    onExpire: async () => {
+      setShowWarning(false);
+      await flushAllSaves();
+      logout();
+    },
+  });
+
+  useEffect(() => {
+    function handleBeforeUnload(e) {
+      if (composerSaveRef.current?.flush) composerSaveRef.current.flush();
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const authedFetch = useCallback(
     (path, options = {}) =>
@@ -32,30 +64,23 @@ export default function Dashboard() {
     authedFetch('/notes/tags/all')
       .then((res) => (res.ok ? res.json() : []))
       .then(setAllTags)
-      .catch(() => {}); // tag sidebar failing silently is fine — not critical path
+      .catch(() => {});
   }, [authedFetch]);
 
-  // Re-fetch notes whenever search query or tag filter changes
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
-    if (activeTag) params.set('tag', activeTag);
+    if (activeTag)   params.set('tag', activeTag);
     const qs = params.toString() ? `?${params.toString()}` : '';
-
     authedFetch(`/notes${qs}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Could not load notes');
-        return res.json();
-      })
+      .then((res) => { if (!res.ok) throw new Error('Could not load notes'); return res.json(); })
       .then(setNotes)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [authedFetch, searchQuery, activeTag]);
 
-  useEffect(() => {
-    loadTags();
-  }, [loadTags]);
+  useEffect(() => { loadTags(); }, [loadTags]);
 
   async function handleCreate({ title, content, tags }) {
     setError('');
@@ -66,8 +91,6 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not create note');
-      // Only splice into the visible list if it matches the current filter —
-      // otherwise a note created while filtered would seem to vanish.
       if (!activeTag || data.tags?.includes(activeTag)) {
         setNotes((prev) => [data, ...prev]);
       }
@@ -87,9 +110,7 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not update note');
-
       setNotes((prev) => {
-        // If a tag filter is active and the note no longer has that tag, drop it from view
         if (activeTag && !data.tags?.includes(activeTag)) {
           return prev.filter((n) => n.id !== id);
         }
@@ -106,7 +127,7 @@ export default function Dashboard() {
   async function handleDelete(id) {
     setError('');
     const prevNotes = notes;
-    setNotes((prev) => prev.filter((n) => n.id !== id)); // optimistic
+    setNotes((prev) => prev.filter((n) => n.id !== id));
     try {
       const res = await authedFetch(`/notes/${id}`, { method: 'DELETE' });
       if (!res.ok && res.status !== 204) {
@@ -115,19 +136,23 @@ export default function Dashboard() {
       }
       loadTags();
     } catch (err) {
-      setNotes(prevNotes); // revert on failure
+      setNotes(prevNotes);
       setError(err.message);
     }
-  }
-
-  function handleTagClick(tagName) {
-    setActiveTag(tagName);
   }
 
   const isFiltering = Boolean(searchQuery || activeTag);
 
   return (
     <div className="app-shell">
+      {showWarning && warningSeconds !== null && (
+        <SessionWarningModal
+          secondsLeft={warningSeconds}
+          onStay={() => { extendSession(); setShowWarning(false); }}
+          onLogout={async () => { setShowWarning(false); await flushAllSaves(); logout(); }}
+        />
+      )}
+
       <header className="app-header">
         <div className="brand">
           <h1>Notes</h1>
@@ -136,7 +161,7 @@ export default function Dashboard() {
         <div className="user-chip">
           <ThemeToggle />
           <span className="name">{user?.name || user?.email}</span>
-          <button onClick={logout}>Sign out</button>
+          <button onClick={async () => { await flushAllSaves(); logout(); }}>Sign out</button>
         </div>
       </header>
 
@@ -144,20 +169,21 @@ export default function Dashboard() {
         {error && <div className="error-banner">{error}</div>}
 
         <Composer
-  onCreate={handleCreate}
-  onMediaUploaded={(noteId, uploaded) => {
-    setNotes((prev) =>
-      prev.map((n) =>
-        n.id === noteId
-          ? { ...n, media: [...(n.media || []), ...uploaded] }
-          : n
-      )
-    );
-  }}
-/>
+          onCreate={handleCreate}
+          onMediaUploaded={(noteId, uploaded) => {
+            setNotes((prev) =>
+              prev.map((n) =>
+                n.id === noteId
+                  ? { ...n, media: [...(n.media || []), ...uploaded] }
+                  : n
+              )
+            );
+          }}
+          saveRef={composerSaveRef}
+        />
 
         <SearchBar onSearch={setSearchQuery} />
-        <TagFilter tags={allTags} activeTag={activeTag} onSelect={setActiveTag} />
+        <TagFilter tags={allTags} activeTag={activeTag} onSelect={(t) => setActiveTag(t)} />
 
         {loading ? (
           <div className="loading-state">Loading your notes…</div>
@@ -178,7 +204,8 @@ export default function Dashboard() {
                 note={note}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
-                onTagClick={handleTagClick}
+                onTagClick={(t) => setActiveTag(t)}
+                editSaveRef={editCardSaveRef}
               />
             ))}
           </div>

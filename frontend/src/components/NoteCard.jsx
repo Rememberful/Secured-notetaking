@@ -1,17 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import TagInput from './TagInput.jsx';
 import MediaGallery from './MediaGallery.jsx';
 import RichEditor from './RichEditor.jsx';
 import NoteViewModal from './NoteViewModal.jsx';
+import useAutoSave from '../hooks/useAutoSave.js';
 import { getPreviewText } from '../utils/richText.js';
 
-export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
-  const [mode, setMode] = useState('view'); // 'view' | 'edit' | 'modal'
-  const [title, setTitle] = useState(note.title);
+function SaveStatus({ status }) {
+  if (status === 'idle') return null;
+  return (
+    <span className={`save-status save-status-${status}`}>
+      {status === 'saving' && <><span className="save-spinner" />Saving…</>}
+      {status === 'saved'  && <>✓ Saved</>}
+      {status === 'error'  && <>⚠ Save failed</>}
+    </span>
+  );
+}
+
+export default function NoteCard({ note, onUpdate, onDelete, onTagClick, editSaveRef }) {
+  const [mode, setMode]       = useState('view');
+  const [title, setTitle]     = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [tags, setTags] = useState(note.tags || []);
-  const [media, setMedia] = useState(note.media || []);
-  const [saving, setSaving] = useState(false);
+  const [tags, setTags]       = useState(note.tags || []);
+  const [media, setMedia]     = useState(note.media || []);
+  const [saving, setSaving]   = useState(false);
+
+  const autoSaveFn = useCallback(async () => {
+    if (!title.trim()) return;
+    await onUpdate(note.id, { title: title.trim(), content, tags });
+  }, [note.id, title, content, tags, onUpdate]);
+
+  const { status, flushSave } = useAutoSave(autoSaveFn, [title, content, tags], {
+    delay: 3000,
+    minContent: title,
+  });
+
+  useEffect(() => {
+    if (editSaveRef && mode === 'edit') {
+      editSaveRef.current = { flush: flushSave };
+    }
+    return () => { if (editSaveRef) editSaveRef.current = null; };
+  }, [editSaveRef, mode, flushSave]);
 
   function cancel() {
     setTitle(note.title);
@@ -34,7 +63,6 @@ export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
     hour: '2-digit', minute: '2-digit',
   });
 
-  // ---- Edit mode ----
   if (mode === 'edit') {
     return (
       <div className="note-card note-card-editing">
@@ -52,32 +80,31 @@ export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
         />
         <TagInput tags={tags} onChange={setTags} placeholder="Add tags…" />
         <MediaGallery noteId={note.id} media={media} onMediaChange={setMedia} />
-        <div className="note-actions">
-          <button onClick={cancel} disabled={saving}>Cancel</button>
-          <button className="save" onClick={save} disabled={saving || !title.trim()}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
+        <div className="note-actions-edit">
+          <SaveStatus status={status} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={cancel} disabled={saving}>Cancel</button>
+            <button className="save" onClick={save} disabled={saving || !title.trim()}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ---- Card view (truncated preview) ----
   const { preview, truncated } = getPreviewText(note.content, 20);
 
   return (
     <>
       <div className="note-card">
         <h3>{note.title}</h3>
-
         <p className="note-preview">
           {preview
             ? <>{preview}{truncated && <span className="preview-fade">…</span>}</>
             : <em style={{ color: 'var(--ink-soft)' }}>No content</em>
           }
         </p>
-
-        {/* Show only the first image on the card to keep it compact */}
         {note.media && note.media.length > 0 && (
           <MediaGallery
             noteId={note.id}
@@ -86,7 +113,6 @@ export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
             readOnly
           />
         )}
-
         {note.tags && note.tags.length > 0 && (
           <div className="note-tags">
             {note.tags.map((tag) => (
@@ -96,16 +122,13 @@ export default function NoteCard({ note, onUpdate, onDelete, onTagClick }) {
             ))}
           </div>
         )}
-
         <div className="note-meta">Updated {formattedDate}</div>
-
         <div className="note-actions">
           <button onClick={() => setMode('modal')}>View</button>
           <button onClick={() => setMode('edit')}>Edit</button>
           <button className="danger" onClick={() => onDelete(note.id)}>Delete</button>
         </div>
       </div>
-
       {mode === 'modal' && (
         <NoteViewModal
           note={{ ...note, content, tags, media }}

@@ -327,18 +327,6 @@ button {
   outline: none;
 }
 
-.composer-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.composer-footer .btn {
-  width: auto;
-  padding: 8px 20px;
-  font-size: 14px;
-}
-
 .notes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1138,6 +1126,107 @@ button {
 .modal-close-btn:hover {
   color: var(--ink);
   border-color: var(--ink-soft);
+}
+
+/* ---- Auto-save status indicator ---- */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.save-status-saving { color: var(--accent-dark); }
+.save-status-saved  { color: var(--sage); }
+.save-status-error  { color: var(--danger); }
+
+.save-spinner {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(79, 195, 247, 0.3);
+  border-top-color: var(--accent);
+  animation: wakeup-spin 0.9s linear infinite;
+}
+
+.composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.composer-footer .btn {
+  width: auto;
+  padding: 8px 20px;
+  font-size: 14px;
+}
+
+.note-actions-edit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.note-actions-edit button {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.note-actions-edit button:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.note-actions-edit button.save {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* ---- Session warning modal ---- */
+.session-warning-panel {
+  max-width: 420px;
+}
+
+.session-warning-body {
+  padding: 20px 24px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.session-warning-body p {
+  margin: 0 0 16px 0;
+  color: var(--ink);
+}
+
+.session-countdown {
+  font-size: 18px;
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-track {
+  height: 6px;
+  background: rgba(244, 71, 71, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.session-fill {
+  height: 100%;
+  background: var(--danger);
+  border-radius: 3px;
+  transition: width 1s linear;
 }
 /* ---- Backend wakeup banner ---- */
 .wakeup-banner {
