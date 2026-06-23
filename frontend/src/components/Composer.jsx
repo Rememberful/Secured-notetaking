@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import TagInput from './TagInput.jsx';
 import MediaGallery from './MediaGallery.jsx';
+import RichEditor from './RichEditor.jsx';
 
 export default function Composer({ onCreate, onMediaUploaded }) {
   const [title, setTitle] = useState('');
@@ -42,11 +43,10 @@ export default function Composer({ onCreate, onMediaUploaded }) {
         onChange={(e) => setTitle(e.target.value)}
         maxLength={120}
       />
-      <textarea
+      <RichEditor
+        content={content}
+        onChange={setContent}
         placeholder="Write something worth keeping…"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={2}
       />
       <TagInput tags={tags} onChange={setTags} placeholder="Add tags…" />
       <MediaGallery

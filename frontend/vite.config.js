@@ -6,4 +6,21 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'tiptap': [
+            '@tiptap/react',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-underline',
+            '@tiptap/extension-strike',
+            '@tiptap/extension-link',
+            '@tiptap/extension-placeholder',
+          ],
+        },
+      },
+    },
+  },
 });
