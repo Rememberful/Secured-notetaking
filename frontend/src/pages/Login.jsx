@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
+import BackendWakeup from '../components/BackendWakeup.jsx';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [error, setError]           = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
   const { login, apiUrl } = useAuth();
   const navigate = useNavigate();
+
+  const handleBackendReady = useCallback(() => setBackendReady(true), []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -39,6 +43,8 @@ export default function Login() {
         <h1>Welcome back</h1>
         <p className="auth-sub">Sign in to keep writing where you left off.</p>
 
+        <BackendWakeup onReady={handleBackendReady} />
+
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
@@ -51,6 +57,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              disabled={!backendReady}
             />
           </div>
           <div className="field">
@@ -62,13 +69,18 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              disabled={!backendReady}
             />
           </div>
           <div className="forgot-password-link">
             <Link to="/forgot-password">Forgot your password?</Link>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={submitting || !backendReady}
+          >
+            {submitting ? 'Signing in…' : !backendReady ? 'Waiting for server…' : 'Sign in'}
           </button>
         </form>
 
@@ -77,7 +89,8 @@ export default function Login() {
         <GoogleSignInButton onError={setError} />
 
         <div className="auth-switch">
-          Don't have an account? <Link to="/signup"><button type="button">Sign up</button></Link>
+          Don't have an account?{' '}
+          <Link to="/signup"><button type="button">Sign up</button></Link>
         </div>
       </div>
     </div>
