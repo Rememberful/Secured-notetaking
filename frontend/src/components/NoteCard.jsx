@@ -7,7 +7,7 @@ import useAutoSave from '../hooks/useAutoSave.js';
 import { getPreviewText } from '../utils/richText.js';
 
 function SaveStatus({ status }) {
-  if (status === 'idle') return null;
+  if (status === 'idle') return <span className="save-status" />;
   return (
     <span className={`save-status save-status-${status}`}>
       {status === 'saving' && <><span className="save-spinner" />Saving…</>}
